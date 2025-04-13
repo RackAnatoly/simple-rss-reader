@@ -3,6 +3,7 @@ import { View, FlatList, StyleSheet, RefreshControl } from "react-native";
 import { Text, ActivityIndicator } from "react-native-paper";
 import { useAppState } from "../context/AppStateContext";
 import { useRefreshFeeds } from "../hooks/useRefreshFeeds";
+import { ArticleItem } from "../components/ArticleItem";
 
 export function HomeScreen() {
   const { state } = useAppState();
@@ -36,13 +37,14 @@ export function HomeScreen() {
             <FlatList
               data={sortedArticles}
               keyExtractor={(item) => item.id}
-              renderItem={({ item }) => <Text>{item.title}</Text>}
+              renderItem={({ item }) => <ArticleItem article={item} />}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}
                   onRefresh={refreshFeeds}
                 />
               }
+              contentContainerStyle={styles.list}
             />
           )}
         </>
@@ -74,5 +76,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 16,
     color: "gray"
+  },
+  list: {
+    paddingBottom: 20
   }
 });
