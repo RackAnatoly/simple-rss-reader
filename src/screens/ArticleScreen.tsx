@@ -1,16 +1,12 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { RouteProp, useRoute } from "@react-navigation/native";
+import { RootStackParamList } from "../types/navigation";
 
-type ArticleParams = {
-  Article: {
-    articleId: string;
-    title: string;
-  };
-};
+type ArticleRouteProp = RouteProp<RootStackParamList, "Article">;
 
 export function ArticleScreen() {
-  const route = useRoute<RouteProp<ArticleParams, "Article">>();
+  const route = useRoute<ArticleRouteProp>();
   const { articleId, title } = route.params;
 
   return (

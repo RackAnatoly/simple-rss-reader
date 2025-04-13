@@ -1,10 +1,17 @@
-import React, { createContext, useContext, useReducer, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  ReactNode
+} from "react";
 import { AppState, Feed, Article } from "../types";
+import { saveAppState, loadAppState } from "../utils/storage";
 
 const initialState: AppState = {
   feeds: [],
   articles: [],
-  isLoading: false,
+  isLoading: true,
   error: undefined
 };
 
@@ -17,7 +24,8 @@ type ActionType =
   | { type: "SET_ARTICLES"; payload: Article[] }
   | { type: "ADD_ARTICLES"; payload: Article[] }
   | { type: "MARK_AS_READ"; payload: string }
-  | { type: "TOGGLE_FAVORITE"; payload: string };
+  | { type: "TOGGLE_FAVORITE"; payload: string }
+  | { type: "INIT_STATE"; payload: Partial<AppState> };
 
 function appReducer(state: AppState, action: ActionType): AppState {
   switch (action.type) {
@@ -69,6 +77,12 @@ function appReducer(state: AppState, action: ActionType): AppState {
             : article
         )
       };
+    case "INIT_STATE":
+      return {
+        ...state,
+        ...action.payload,
+        isLoading: false
+      };
     default:
       return state;
   }
@@ -85,6 +99,32 @@ const AppStateContext = createContext<AppStateContextType | undefined>(
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
+
+  useEffect(() => {
+    const loadState = async () => {
+      try {
+        dispatch({ type: "SET_LOADING", payload: true });
+        const savedState = await loadAppState();
+
+        if (savedState) {
+          dispatch({ type: "INIT_STATE", payload: savedState });
+        } else {
+          dispatch({ type: "SET_LOADING", payload: false });
+        }
+      } catch (error) {
+        console.error("Failed to load state:", error);
+        dispatch({ type: "SET_LOADING", payload: false });
+      }
+    };
+
+    loadState();
+  }, []);
+
+  useEffect(() => {
+    if (!state.isLoading) {
+      saveAppState(state).catch(console.error);
+    }
+  }, [state.feeds, state.articles]);
 
   return (
     <AppStateContext.Provider value={{ state, dispatch }}>

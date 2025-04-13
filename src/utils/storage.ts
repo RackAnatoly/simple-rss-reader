@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Feed, Article } from "../types";
+import { Feed, Article, AppState } from "../types";
 
 const FEEDS_STORAGE_KEY = "@rss_reader:feeds";
 const ARTICLES_STORAGE_KEY = "@rss_reader:articles";
@@ -37,5 +37,29 @@ export async function getArticles(): Promise<Article[]> {
   } catch (error) {
     console.error("Error getting articles:", error);
     return [];
+  }
+}
+
+export async function saveAppState(state: AppState) {
+  try {
+    await saveFeeds(state.feeds);
+    await saveArticles(state.articles);
+  } catch (error) {
+    console.error("Error saving app state:", error);
+  }
+}
+
+export async function loadAppState(): Promise<Partial<AppState>> {
+  try {
+    const feeds = await getFeeds();
+    const articles = await getArticles();
+
+    return {
+      feeds,
+      articles
+    };
+  } catch (error) {
+    console.error("Error loading app state:", error);
+    return {};
   }
 }

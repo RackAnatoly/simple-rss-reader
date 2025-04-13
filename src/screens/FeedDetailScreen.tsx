@@ -1,16 +1,12 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { RouteProp, useRoute } from "@react-navigation/native";
+import { RootStackParamList } from "../types/navigation";
 
-type FeedDetailParams = {
-  FeedDetail: {
-    feedId: string;
-    title: string;
-  };
-};
+type FeedDetailRouteProp = RouteProp<RootStackParamList, "FeedDetail">;
 
 export function FeedDetailScreen() {
-  const route = useRoute<RouteProp<FeedDetailParams, "FeedDetail">>();
+  const route = useRoute<FeedDetailRouteProp>();
   const { feedId, title } = route.params;
 
   return (

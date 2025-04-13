@@ -9,9 +9,10 @@ import { FeedsScreen } from "../screens/FeedsScreen";
 import { FeedDetailScreen } from "../screens/FeedDetailScreen";
 import { ArticleScreen } from "../screens/ArticleScreen";
 import { FavoritesScreen } from "../screens/FavoritesScreen";
+import { RootStackParamList, HomeTabParamList } from "../types/navigation";
 
-const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator<HomeTabParamList>();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function HomeTabs() {
   return (
@@ -58,12 +59,12 @@ export function Navigation() {
         <Stack.Screen
           name="FeedDetail"
           component={FeedDetailScreen}
-          options={({ route }: any) => ({ title: route.params.title })}
+          options={({ route }) => ({ title: route.params.title })}
         />
         <Stack.Screen
           name="Article"
           component={ArticleScreen}
-          options={({ route }: any) => ({ title: route.params.title })}
+          options={({ route }) => ({ title: route.params.title })}
         />
       </Stack.Navigator>
     </NavigationContainer>
