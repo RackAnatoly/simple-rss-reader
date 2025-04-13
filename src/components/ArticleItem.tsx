@@ -4,9 +4,9 @@ import { Text, Avatar } from "react-native-paper";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { format } from "date-fns";
+import { useAppState } from "../context/AppStateContext";
 import { Article } from "../types";
 import { RootStackParamList } from "../types/navigation";
-import { useAppState } from "../context/AppStateContext";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -19,7 +19,6 @@ export function ArticleItem({ article }: ArticleItemProps) {
   const { dispatch } = useAppState();
 
   const handlePress = () => {
-    dispatch({ type: "MARK_AS_READ", payload: article.id });
     navigation.navigate("Article", {
       articleId: article.id,
       title: article.title

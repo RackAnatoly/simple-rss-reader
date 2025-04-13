@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import {
   View,
   ScrollView,
@@ -20,24 +20,16 @@ const { width } = Dimensions.get("window");
 
 export function ArticleScreen() {
   const route = useRoute<ArticleRouteProp>();
-  const { articleId } = route.params;
+  const { articleId, title } = route.params;
   const { state, dispatch } = useAppState();
-  const [article, setArticle] = useState(
-    state.articles.find((a) => a.id === articleId)
-  );
+
+  const article = state.articles.find((a) => a.id === articleId);
 
   useEffect(() => {
-    if (articleId && !article?.isRead) {
+    if (articleId && article && !article.isRead) {
       dispatch({ type: "MARK_AS_READ", payload: articleId });
     }
   }, [articleId, article?.isRead, dispatch]);
-
-  useEffect(() => {
-    const updatedArticle = state.articles.find((a) => a.id === articleId);
-    if (updatedArticle) {
-      setArticle(updatedArticle);
-    }
-  }, [state.articles, articleId]);
 
   if (!article) {
     return (
