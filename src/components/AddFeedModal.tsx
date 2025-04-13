@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { View, StyleSheet, Modal } from "react-native";
 import { Button, TextInput, Text } from "react-native-paper";
-import { v4 as uuidv4 } from "uuid";
 import { useAppState } from "../context/AppStateContext";
 import { Feed } from "../types";
+import { generateId } from "../utils/idGenerator";
 
 interface AddFeedModalProps {
   visible: boolean;
@@ -49,15 +49,24 @@ export function AddFeedModal({
       return;
     }
 
-    if (!url.trim() || !validateUrl(url)) {
+    let processedUrl = url.trim();
+
+    if (!processedUrl || !validateUrl(processedUrl)) {
       setError("Please enter a valid URL");
       return;
     }
 
+    if (
+      !processedUrl.startsWith("http://") &&
+      !processedUrl.startsWith("https://")
+    ) {
+      processedUrl = "https://" + processedUrl;
+    }
+
     const feed: Feed = {
-      id: editFeed?.id || uuidv4(),
+      id: editFeed?.id || generateId(),
       title: title.trim(),
-      url: url.trim(),
+      url: processedUrl,
       added: editFeed?.added || Date.now()
     };
 

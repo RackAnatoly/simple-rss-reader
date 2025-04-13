@@ -1,17 +1,10 @@
-import React, {
-  createContext,
-  useContext,
-  useReducer,
-  useEffect,
-  ReactNode
-} from "react";
+import React, { createContext, useContext, useReducer, ReactNode } from "react";
 import { AppState, Feed, Article } from "../types";
-import { saveAppState, loadAppState } from "../utils/storage";
 
 const initialState: AppState = {
   feeds: [],
   articles: [],
-  isLoading: true,
+  isLoading: false,
   error: undefined
 };
 
@@ -99,32 +92,6 @@ const AppStateContext = createContext<AppStateContextType | undefined>(
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
-
-  useEffect(() => {
-    const loadState = async () => {
-      try {
-        dispatch({ type: "SET_LOADING", payload: true });
-        const savedState = await loadAppState();
-
-        if (savedState) {
-          dispatch({ type: "INIT_STATE", payload: savedState });
-        } else {
-          dispatch({ type: "SET_LOADING", payload: false });
-        }
-      } catch (error) {
-        console.error("Failed to load state:", error);
-        dispatch({ type: "SET_LOADING", payload: false });
-      }
-    };
-
-    loadState();
-  }, []);
-
-  useEffect(() => {
-    if (!state.isLoading) {
-      saveAppState(state).catch(console.error);
-    }
-  }, [state.feeds, state.articles]);
 
   return (
     <AppStateContext.Provider value={{ state, dispatch }}>

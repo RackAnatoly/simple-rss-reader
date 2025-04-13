@@ -1,36 +1,63 @@
-import React, { useEffect } from "react";
-import { View, FlatList, StyleSheet, RefreshControl } from "react-native";
-import { Text, ActivityIndicator } from "react-native-paper";
+import React from "react";
+import { View, FlatList, StyleSheet } from "react-native";
+import { Text, Button, ActivityIndicator } from "react-native-paper";
 import { useAppState } from "../context/AppStateContext";
-import { useRefreshFeeds } from "../hooks/useRefreshFeeds";
 import { ArticleItem } from "../components/ArticleItem";
+import { fetchAllFeeds } from "../services/rssService";
 
 export function HomeScreen() {
-  const { state } = useAppState();
-  const { refreshing, refreshFeeds } = useRefreshFeeds();
-
-  useEffect(() => {
-    if (state.feeds.length > 0 && state.articles.length === 0) {
-      refreshFeeds();
-    }
-  }, [state.feeds, state.articles, refreshFeeds]);
+  const { state, dispatch } = useAppState();
 
   const sortedArticles = [...state.articles].sort((a, b) => {
     return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
   });
 
+  const handleRefresh = async () => {
+    if (state.feeds.length === 0) {
+      dispatch({
+        type: "SET_ERROR",
+        payload: "No feeds added. Add feeds first to load articles."
+      });
+      return;
+    }
+
+    try {
+      dispatch({ type: "SET_LOADING", payload: true });
+      const articles = await fetchAllFeeds(state.feeds);
+      dispatch({ type: "ADD_ARTICLES", payload: articles });
+    } catch (error) {
+      console.error("Error refreshing feeds:", error);
+      dispatch({
+        type: "SET_ERROR",
+        payload: "Failed to refresh feeds. Please try again."
+      });
+    } finally {
+      dispatch({ type: "SET_LOADING", payload: false });
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>All Articles</Text>
 
-      {state.isLoading && !refreshing ? (
+      <Button
+        mode="contained"
+        onPress={handleRefresh}
+        style={{ marginBottom: 16 }}
+        disabled={state.isLoading}
+      >
+        {state.isLoading ? "Loading..." : "Refresh Feeds"}
+      </Button>
+
+      {state.isLoading ? (
         <ActivityIndicator size="large" style={styles.loader} />
       ) : (
         <>
           {sortedArticles.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
-                No articles found. Add RSS feeds to see articles here.
+                No articles found. Add RSS feeds and click Refresh to see
+                articles here.
               </Text>
             </View>
           ) : (
@@ -38,12 +65,6 @@ export function HomeScreen() {
               data={sortedArticles}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => <ArticleItem article={item} />}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={refreshFeeds}
-                />
-              }
               contentContainerStyle={styles.list}
             />
           )}

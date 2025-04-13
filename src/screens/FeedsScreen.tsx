@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { View, FlatList, StyleSheet, Alert } from "react-native";
-import { Text, FAB, ActivityIndicator } from "react-native-paper";
+import { Text, FAB } from "react-native-paper";
 import { useAppState } from "../context/AppStateContext";
-import { FeedItem } from "../components/FeedItem";
 import { AddFeedModal } from "../components/AddFeedModal";
+import { FeedItem } from "../components/FeedItem";
 import { Feed } from "../types";
 
 export function FeedsScreen() {
@@ -40,30 +40,24 @@ export function FeedsScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Manage RSS Feeds</Text>
 
-      {state.isLoading ? (
-        <ActivityIndicator size="large" style={styles.loader} />
+      {state.feeds.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>
+            No feeds added yet. Add your first RSS feed to start!
+          </Text>
+        </View>
       ) : (
-        <>
-          {state.feeds.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>
-                No feeds added yet. Add your first RSS feed to start!
-              </Text>
-            </View>
-          ) : (
-            <FlatList
-              data={state.feeds}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <FeedItem
-                  feed={item}
-                  onEdit={handleEditFeed}
-                  onDelete={handleDeleteFeed}
-                />
-              )}
+        <FlatList
+          data={state.feeds}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <FeedItem
+              feed={item}
+              onEdit={handleEditFeed}
+              onDelete={handleDeleteFeed}
             />
           )}
-        </>
+        />
       )}
 
       <FAB style={styles.fab} icon="plus" onPress={handleAddFeed} />
@@ -86,9 +80,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 16
-  },
-  loader: {
-    marginTop: 50
   },
   emptyContainer: {
     flex: 1,
