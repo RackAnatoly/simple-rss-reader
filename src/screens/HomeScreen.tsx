@@ -1,16 +1,43 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import { View, FlatList, StyleSheet } from "react-native";
-import { Text, Button, ActivityIndicator } from "react-native-paper";
+import {
+  Text,
+  Button,
+  ActivityIndicator,
+  Searchbar,
+  Chip
+} from "react-native-paper";
 import { useAppState } from "../context/AppStateContext";
 import { ArticleItem } from "../components/ArticleItem";
 import { fetchAllFeeds } from "../services/rssService";
 
 export function HomeScreen() {
   const { state, dispatch } = useAppState();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showUnreadOnly, setShowUnreadOnly] = useState(false);
 
-  const sortedArticles = [...state.articles].sort((a, b) => {
-    return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
-  });
+  const getFilteredArticles = useCallback(() => {
+    let filtered = state.articles;
+    if (showUnreadOnly) {
+      filtered = filtered.filter((article) => !article.isRead);
+    }
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (article) =>
+          article.title.toLowerCase().includes(query) ||
+          (article.description &&
+            article.description.toLowerCase().includes(query))
+      );
+    }
+
+    return [...filtered].sort((a, b) => {
+      return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
+    });
+  }, [state.articles, searchQuery, showUnreadOnly]);
+
+  const filteredArticles = getFilteredArticles();
 
   const handleRefresh = async () => {
     if (state.feeds.length === 0) {
@@ -36,9 +63,44 @@ export function HomeScreen() {
     }
   };
 
+  const handleMarkAllAsRead = () => {
+    const articleIds = filteredArticles
+      .filter((article) => !article.isRead)
+      .map((article) => article.id);
+
+    articleIds.forEach((id) => {
+      dispatch({ type: "MARK_AS_READ", payload: id });
+    });
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>All Articles</Text>
+
+      <Searchbar
+        placeholder="Search articles"
+        onChangeText={setSearchQuery}
+        value={searchQuery}
+        style={styles.searchBar}
+      />
+
+      <View style={styles.filterContainer}>
+        <Chip
+          selected={showUnreadOnly}
+          onPress={() => setShowUnreadOnly(!showUnreadOnly)}
+          style={styles.filterChip}
+        >
+          Unread only
+        </Chip>
+
+        <Button
+          mode="text"
+          onPress={handleMarkAllAsRead}
+          disabled={filteredArticles.filter((a) => !a.isRead).length === 0}
+        >
+          Mark all as read
+        </Button>
+      </View>
 
       <Button
         mode="contained"
@@ -53,16 +115,17 @@ export function HomeScreen() {
         <ActivityIndicator size="large" style={styles.loader} />
       ) : (
         <>
-          {sortedArticles.length === 0 ? (
+          {filteredArticles.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
-                No articles found. Add RSS feeds and click Refresh to see
-                articles here.
+                {searchQuery || showUnreadOnly
+                  ? "No articles match your search or filter criteria."
+                  : "No articles found. Add RSS feeds and click Refresh to see articles here."}
               </Text>
             </View>
           ) : (
             <FlatList
-              data={sortedArticles}
+              data={filteredArticles}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => <ArticleItem article={item} />}
               contentContainerStyle={styles.list}
@@ -83,6 +146,18 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 16
+  },
+  searchBar: {
+    marginBottom: 16
+  },
+  filterContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16
+  },
+  filterChip: {
+    marginRight: 8
   },
   loader: {
     marginTop: 50

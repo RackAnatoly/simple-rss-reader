@@ -1,46 +1,134 @@
-import React from "react";
-import { View, FlatList, StyleSheet, RefreshControl } from "react-native";
-import { Text, ActivityIndicator } from "react-native-paper";
+import React, { useState, useCallback } from "react";
+import { View, FlatList, StyleSheet } from "react-native";
+import {
+  Text,
+  Button,
+  ActivityIndicator,
+  Searchbar,
+  Chip
+} from "react-native-paper";
 import { useAppState } from "../context/AppStateContext";
-import { useRefreshFeeds } from "../hooks/useRefreshFeeds";
 import { ArticleItem } from "../components/ArticleItem";
+import { fetchAllFeeds } from "../services/rssService";
 
 export function FavoritesScreen() {
-  const { state } = useAppState();
-  const { refreshing, refreshFeeds } = useRefreshFeeds();
+  const { state, dispatch } = useAppState();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showUnreadOnly, setShowUnreadOnly] = useState(false);
 
-  const favoriteArticles = state.articles
-    .filter((article) => article.isFavorite)
-    .sort(
-      (a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()
-    );
+  const getFilteredArticles = useCallback(() => {
+    let filtered = state.articles.filter((article) => article.isFavorite);
+
+    if (showUnreadOnly) {
+      filtered = filtered.filter((article) => !article.isRead);
+    }
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (article) =>
+          article.title.toLowerCase().includes(query) ||
+          (article.description &&
+            article.description.toLowerCase().includes(query))
+      );
+    }
+
+    return [...filtered].sort((a, b) => {
+      return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
+    });
+  }, [state.articles, searchQuery, showUnreadOnly]);
+
+  const filteredArticles = getFilteredArticles();
+
+  const handleRefresh = async () => {
+    if (state.feeds.length === 0) {
+      dispatch({
+        type: "SET_ERROR",
+        payload: "No feeds added. Add feeds first to load articles."
+      });
+      return;
+    }
+
+    try {
+      dispatch({ type: "SET_LOADING", payload: true });
+      const articles = await fetchAllFeeds(state.feeds);
+      dispatch({ type: "ADD_ARTICLES", payload: articles });
+    } catch (error) {
+      console.error("Error refreshing feeds:", error);
+      dispatch({
+        type: "SET_ERROR",
+        payload: "Failed to refresh feeds. Please try again."
+      });
+    } finally {
+      dispatch({ type: "SET_LOADING", payload: false });
+    }
+  };
+
+  const handleMarkAllAsRead = () => {
+    const articleIds = filteredArticles
+      .filter((article) => !article.isRead)
+      .map((article) => article.id);
+
+    articleIds.forEach((id) => {
+      dispatch({ type: "MARK_AS_READ", payload: id });
+    });
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Favorite Articles</Text>
 
-      {state.isLoading && !refreshing ? (
+      <Searchbar
+        placeholder="Search in favorites"
+        onChangeText={setSearchQuery}
+        value={searchQuery}
+        style={styles.searchBar}
+      />
+
+      <View style={styles.filterContainer}>
+        <Chip
+          selected={showUnreadOnly}
+          onPress={() => setShowUnreadOnly(!showUnreadOnly)}
+          style={styles.filterChip}
+        >
+          Unread only
+        </Chip>
+
+        <Button
+          mode="text"
+          onPress={handleMarkAllAsRead}
+          disabled={filteredArticles.filter((a) => !a.isRead).length === 0}
+        >
+          Mark all as read
+        </Button>
+      </View>
+
+      <Button
+        mode="contained"
+        onPress={handleRefresh}
+        style={{ marginBottom: 16 }}
+        disabled={state.isLoading}
+      >
+        {state.isLoading ? "Loading..." : "Refresh Feeds"}
+      </Button>
+
+      {state.isLoading ? (
         <ActivityIndicator size="large" style={styles.loader} />
       ) : (
         <>
-          {favoriteArticles.length === 0 ? (
+          {filteredArticles.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
-                No favorite articles yet. Mark articles as favorite to see them
-                here.
+                {searchQuery || showUnreadOnly
+                  ? "No articles match your search or filter criteria."
+                  : "No favorite articles yet. Mark articles as favorite to see them here."}
               </Text>
             </View>
           ) : (
             <FlatList
-              data={favoriteArticles}
+              data={filteredArticles}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => <ArticleItem article={item} />}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={refreshFeeds}
-                />
-              }
               contentContainerStyle={styles.list}
             />
           )}
@@ -59,6 +147,18 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 16
+  },
+  searchBar: {
+    marginBottom: 16
+  },
+  filterContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16
+  },
+  filterChip: {
+    marginRight: 8
   },
   loader: {
     marginTop: 50
