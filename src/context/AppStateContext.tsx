@@ -1,10 +1,17 @@
-import React, { createContext, useContext, useReducer, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  ReactNode
+} from "react";
 import { AppState, Feed, Article } from "../types";
+import { saveAppState, loadAppState } from "../utils/storage";
 
 const initialState: AppState = {
   feeds: [],
   articles: [],
-  isLoading: false,
+  isLoading: true,
   error: undefined
 };
 
@@ -92,6 +99,48 @@ const AppStateContext = createContext<AppStateContextType | undefined>(
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
+
+  useEffect(() => {
+    const loadState = async () => {
+      try {
+        dispatch({ type: "SET_LOADING", payload: true });
+        const savedState = await loadAppState();
+
+        if (savedState.feeds?.length || savedState.articles?.length) {
+          dispatch({ type: "INIT_STATE", payload: savedState });
+          console.log(
+            "Loaded data from storage:",
+            `${savedState.feeds?.length || 0} feeds, ${
+              savedState.articles?.length || 0
+            } articles`
+          );
+        } else {
+          dispatch({ type: "SET_LOADING", payload: false });
+        }
+      } catch (error) {
+        console.error("Failed to load state:", error);
+        dispatch({ type: "SET_LOADING", payload: false });
+      }
+    };
+
+    loadState();
+  }, []);
+
+  useEffect(() => {
+    if (!state.isLoading) {
+      const saveTimer = setTimeout(() => {
+        saveAppState(state)
+          .then((success) => {
+            if (success) {
+              console.log("State saved successfully");
+            }
+          })
+          .catch((error) => console.error("Error saving state:", error));
+      }, 300);
+
+      return () => clearTimeout(saveTimer);
+    }
+  }, [state.feeds, state.articles]);
 
   return (
     <AppStateContext.Provider value={{ state, dispatch }}>

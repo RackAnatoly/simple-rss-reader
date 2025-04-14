@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Text, IconButton, Divider, Button } from "react-native-paper";
 import { RouteProp, useRoute } from "@react-navigation/native";
-import RenderHtml from "react-native-render-html";
+import RenderHtml, { defaultSystemFonts } from "react-native-render-html";
 import { format } from "date-fns";
 import { RootStackParamList } from "../types/navigation";
 import { useAppState } from "../context/AppStateContext";
@@ -17,6 +17,8 @@ import { useAppState } from "../context/AppStateContext";
 type ArticleRouteProp = RouteProp<RootStackParamList, "Article">;
 
 const { width } = Dimensions.get("window");
+
+const systemFonts = [...defaultSystemFonts, "system-ui", "-apple-system"];
 
 export function ArticleScreen() {
   const route = useRoute<ArticleRouteProp>();
@@ -71,6 +73,45 @@ export function ArticleScreen() {
     dispatch({ type: "TOGGLE_FAVORITE", payload: article.id });
   };
 
+  const renderersProps = {
+    a: {
+      onPress: (_: any, href: string) => {
+        Linking.openURL(href);
+      }
+    }
+  };
+
+  const tagsStyles = {
+    body: {
+      fontFamily: "system-ui",
+      fontSize: 16,
+      lineHeight: 24,
+      color: "#333"
+    },
+    a: {
+      color: "#2196F3",
+      textDecorationLine: "none"
+    },
+    img: {
+      maxWidth: width - 32,
+      height: "auto",
+      marginVertical: 8
+    },
+    p: {
+      marginBottom: 16
+    },
+    h1: {
+      fontSize: 24,
+      fontWeight: "bold",
+      marginBottom: 16
+    },
+    h2: {
+      fontSize: 20,
+      fontWeight: "bold",
+      marginBottom: 16
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -99,12 +140,13 @@ export function ArticleScreen() {
         <RenderHtml
           contentWidth={width - 32}
           source={{ html: htmlContent }}
-          renderersProps={{
-            a: {
-              onPress: (_, href) => {
-                Linking.openURL(href);
-              }
-            }
+          renderersProps={renderersProps}
+          tagsStyles={tagsStyles as any}
+          systemFonts={systemFonts}
+          enableExperimentalMarginCollapsing={true}
+          enableCSSInlineProcessing={false}
+          defaultTextProps={{
+            selectable: true
           }}
         />
       </View>

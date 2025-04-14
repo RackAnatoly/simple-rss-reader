@@ -1,16 +1,22 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
+import { View, StyleSheet } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { Provider as PaperProvider, Snackbar } from "react-native-paper";
+import {
+  Provider as PaperProvider,
+  Snackbar,
+  ActivityIndicator,
+  Text
+} from "react-native-paper";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AppStateProvider, useAppState } from "./src/context/AppStateContext";
 import { Navigation } from "./src/navigation";
 
 function ErrorHandler() {
   const { state, dispatch } = useAppState();
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = React.useState(false);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (state.error) {
       setVisible(true);
     }
@@ -36,7 +42,26 @@ function ErrorHandler() {
   );
 }
 
+function InitialLoadingScreen() {
+  return (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color="#2196F3" />
+      <Text style={styles.loadingText}>Loading your feeds...</Text>
+    </View>
+  );
+}
+
 function Main() {
+  const { state } = useAppState();
+
+  if (
+    state.isLoading &&
+    state.articles.length === 0 &&
+    state.feeds.length === 0
+  ) {
+    return <InitialLoadingScreen />;
+  }
+
   return (
     <>
       <Navigation />
@@ -59,3 +84,16 @@ export default function App() {
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff"
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16
+  }
+});
